@@ -9,7 +9,14 @@ if ~isfile(model_file)
 end
 load(model_file, 'lamp_layers', 'norm_factor');
 fprintf('Loaded model: %s\n', model_file);
-fprintf('Loaded norm_factor: %.2e\n', norm_factor);
+
+% Check if norm_factor exists (for backward compatibility with older models)
+if ~exist('norm_factor', 'var') || isempty(norm_factor)
+    warning('norm_factor not found in model file. Using default value of 1.0. This may lead to incorrect NMSE.');
+    norm_factor = 1.0;
+else
+    fprintf('Loaded norm_factor: %.2e\n', norm_factor);
+end
 
 % 2. System Parameters (Must match training)
 fc = 300e9;
@@ -72,7 +79,7 @@ batch_size = 100; % Process 100 samples at a time
 num_batches = ceil(n_samples / batch_size);
 
 % Preallocate output for final h
-h_all = zeros(n_sc, G, 2, n_samples, 'single');
+h_all = zeros(n_sc, G, 2, n_samples, 'like', single(0));
 
 for batch_idx = 1:num_batches
     % Calculate batch indices
@@ -86,7 +93,7 @@ for batch_idx = 1:num_batches
     Y_batch = Y_eval(:, :, :, start_idx:end_idx);
     
     % Initialize h and v for this batch
-    h = dlarray(zeros(n_sc, G, 2, batch_samples, 'single'), 'SSCB');
+    h = dlarray(zeros(n_sc, G, 2, batch_samples, 'like', single(0)), 'SSCB');
     v = Y_batch;
     
     % Forward pass through all layers
